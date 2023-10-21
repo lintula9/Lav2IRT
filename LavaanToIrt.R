@@ -12,6 +12,7 @@ LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent fact
   if ( !(varname %in% rownames( output$lambda )) ) stop( paste( varname, "not found in lavaan object." ) )
   if ( lavaanfit@Options$mimic != "Mplus") stop( "Please use mimic = 'Mplus' argument in lavaan." )
   if ( lavaanfit@Options$parameterization != "theta") stop( "Please use parameterization = 'theta' argument in lavaan." )
+  if ( lavaanfit@Options$std.lv != T ) stop( "Please use std.lv = TRUE argument in lavaan." )
   
   message("Please note that variable names (varnames) must not be nested.")
   itemloading = output$lambda[ which( rownames( output$lambda ) == varname ), dimname ]
@@ -52,7 +53,11 @@ ItemInformation <- function( PorbabilityMatrix ) {
   
   nLevels <- ncol( PorbabilityMatrix )
   lambda <- attr( PorbabilityMatrix , "Loading" )
-  theta <- attr( PorbabilityMatrix , "ThetaParameter" ) # Inverse of thetaparameter (i.e., 'error') weights the information calculation.
+  
+  # Note: theta (i.e., unique factor variance, 'error', is set to 1 with theta parameterization by defaul.)
+  # Hence, including it does not make a difference. Only included currently for future improvements.
+  
+  theta <- attr( PorbabilityMatrix , "ThetaParameter" ) 
   
   Item_Q <- matrix(ncol = nLevels + 1 , nrow = nrow(PorbabilityMatrix)) # Number of columns is nlevels + 1 because we need '0' level/category.
   Item_Q[ , 1 ] <- 0 # When level is 0.
