@@ -16,7 +16,7 @@ LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent fact
   
   message("Please note that variable names (varnames) must not be nested.")
   itemloading = output$lambda[ which( rownames( output$lambda ) == varname ), dimname ]
-  itemthresholds = output$tau[ grep( pattern = varname, x = rownames( output$tau ) ) ] #Varnames cant be nested!
+  itemthresholds = output$tau[ grep( pattern = pattern = paste(varname,"|",sep=""), x = rownames( output$tau ) ) ] #Varnames cant be nested!
   itemloc = which( lavaanfit@Data@ov.names[[1]] == varname )
   itemlevels = as.character( 1 : ( length( itemthresholds ) + 1 ))
   nCat <- length( itemlevels ) 
