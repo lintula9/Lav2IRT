@@ -15,11 +15,10 @@ LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent fact
   if ( lavaanfit@Options$std.lv != T ) stop( "Please use std.lv = TRUE argument in lavaan." )
   
   itemloading = output$lambda[ which( rownames( output$lambda ) == varname ), 1 ]
-  itemthresholds = output$tau[ grep( pattern = paste(varname,"|",sep=""), x = rownames( output$tau ) ) ]
+  itemthresholds = output$tau[ grep( pattern = paste("^",varname,"\\b",sep=""), x = rownames( output$tau ) ) ]
 
   message("Please do ensure, that correct variables are ensured in itemthresholds from your LavaanIRTPorbabilities output.")
-  itemloading = output$lambda[ which( rownames( output$lambda ) == varname ), dimname ]
-  itemthresholds = output$tau[ grep(pattern = paste(varname,"|",sep=""), x = rownames( output$tau ) ) ] #Varnames cant be nested!
+
   itemloc = which( lavaanfit@Data@ov.names[[1]] == varname )
   itemlevels = as.character( 1 : ( length( itemthresholds ) + 1 ))
   nCat <- length( itemlevels ) 
