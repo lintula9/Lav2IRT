@@ -1,4 +1,6 @@
 # Lavaan to irt simulated data and lavaan fit 
+# This needs to be updated to give the user confidence that it gives results identical to mirt package.
+# 11.11.2023 - Sakari
 
 par(family = "serif")
 
