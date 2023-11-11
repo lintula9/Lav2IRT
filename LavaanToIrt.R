@@ -13,7 +13,7 @@ LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent fact
   if ( lavaanfit@Options$parameterization != "theta") stop( "Please use parameterization = 'theta' argument in lavaan." )
   
   itemloading = output$lambda[ which( rownames( output$lambda ) == varname ), 1 ]
-  itemthresholds = output$tau[ grep( pattern = varname, x = rownames( output$tau ) ) ]
+  itemthresholds = output$tau[ grep( pattern = paste(varname,"|",sep=""), x = rownames( output$tau ) ) ]
   itemloc = which( lavaanfit@Data@ov.names[[1]] == varname )
   itemlevels = as.character( 1 : ( length( itemthresholds ) + 1 ))
   nCat <- length( itemlevels ) 
