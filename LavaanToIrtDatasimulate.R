@@ -20,14 +20,16 @@ X <- tibble(simulateData(TrueModel, model.type = F,
 
 HypoModel <-  "
     
-    p =~ beta_1 * X1 + beta_2 * X2 + beta_3 * X3
+    p =~ beta_1 * X1 + beta_2 * X2 + beta_3 * X3    
 
     X1 | t1 + t2
     X2 | t1 + t2
     X3 | t1 + t2
 
     p ~ 0
-    p ~~ 1*p "
+    p ~~ 1*p 
+
+    "
 
 LavaanResult <- sem(HypoModel, 
                     data = X, 
@@ -37,12 +39,15 @@ LavaanResult <- sem(HypoModel,
                     parameterization = "theta", 
                     std.lv = T)
 latentVar <- seq(-6,6,.01)
+inspect(LavaanResult, "est")$lambda
+
 
 ####            # Run tests.#
 
 
 testRes <- LavaanIRTProbabilities( lavaanfit = LavaanResult,  varname = "X3", dimname = "p") # Only works manually....
-testRes2 <- LavaanIRTProbabilities( lavaanfit = LavaanResult,  varname = "X3") # Only works manually....
+testRes2 <- LavaanIRTProbabilities( lavaanfit = LavaanResult,  varname = "X3", dimname = "p", 
+                                    marginalize = T) # Only works manually....
 
 tiff("C:/Users/lintu/OneDrive - University of Helsinki/Väitöskirja/General/Application figures/ApplicationFigure3.tiff",
      family = "serif", width = 6,height = 6,units = "in",res = 480, pointsize = 9)

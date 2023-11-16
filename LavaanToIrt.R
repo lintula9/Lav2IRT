@@ -1,11 +1,14 @@
-# Lavaan to IRT 21.10.
+# Lavaan to IRT 16.11.2023.
 # Recently added dimname and plotting options.
+# Recently added marginalizing procedure.
 
 LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent factor level, given the model and observing some value of some item.
                                     varname, 
                                     dimname,
                                     dimmin = -6, 
-                                    dimmax = 6 ) {
+                                    dimmax = 6, 
+                                    marginalize = F,
+                                    silent = F) {
   
   output = inspect( object = lavaanfit, what = "est" )
 
@@ -14,10 +17,8 @@ LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent fact
   if ( lavaanfit@Options$parameterization != "theta") stop( "Please use parameterization = 'theta' argument in lavaan." )
   if ( lavaanfit@Options$std.lv != T ) stop( "Please use std.lv = TRUE argument in lavaan." )
   
-  itemloading = output$lambda[ which( rownames( output$lambda ) == varname ), 1 ]
+  itemloading = output$lambda[ which( rownames( output$lambda ) == varname ), dimname ]
   itemthresholds = output$tau[ grep( pattern = paste("^",varname,"\\b",sep=""), x = rownames( output$tau ) ) ]
-
-  message("Please do ensure, that correct variables are ensured in itemthresholds from your LavaanIRTPorbabilities output.")
 
   itemloc = which( lavaanfit@Data@ov.names[[1]] == varname )
   itemlevels = as.character( 1 : ( length( itemthresholds ) + 1 ))
@@ -27,6 +28,18 @@ LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent fact
   factorvar = output$psi[ dimname, dimname ]
   
   factorX = seq(dimmin, dimmax, .01)
+  
+  if ( marginalize ) {
+    
+    if(!silent) message("Loadings are marginalized - as discussed in Toland et al., 2017. WLSMV uses probit and has that a = ", expression(lambda) )
+    itemloading_all = output$lambda[ which( rownames( output$lambda ) == varname ), ]
+    lmbdMarg = ( itemloading/1.7 ) / sqrt( 1 + sum((itemloading_all/1.7)^2) )
+    unqvar = 1 - ( lmbdMarg^2 )
+    # Item loading is changed to marginalized item loading.
+    itemloading = ( lmbdMarg / sqrt( unqvar ) ) * 1.7
+    
+  }
+  if ( !marginalize & !silent ) message("Loadings are not marginalized and interpreted as conditional loadings if multiple factors have effects on same variables.")
   
   # Item Y indicates P( latentVariable = at some level | X is some category ):
   ProbTheta <- matrix(ncol = nCat, nrow = length(factorX))
