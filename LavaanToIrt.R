@@ -30,8 +30,10 @@ LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent fact
   factorX = seq(dimmin, dimmax, .01)
   
   if ( marginalize ) {
-    message("THIS IS NOT AN UPDATED VERSION DO NOT USE 21.11.2023")
+
     if(!silent) message("Loadings are marginalized by dividing with the square root of unexplained variance by the general factor.", expression(lambda) )
+    if(!silent) message("See Lintula 1st publication 2024 (hopefully) supplementary material for more details.")
+    
     itemloadings_specific = output$lambda[ which( rownames( output$lambda ) == varname ),
                                    which( colnames( output$lambda ) != dimname ) ]
     MarginalizingConstant = sqrt( 1 + as.numeric( itemloadings_specific %*% itemloadings_specific ) )
