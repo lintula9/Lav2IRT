@@ -30,13 +30,14 @@ LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent fact
   factorX = seq(dimmin, dimmax, .01)
   
   if ( marginalize ) {
-    
-    if(!silent) message("Loadings are marginalized - as discussed in Toland et al., 2017. WLSMV uses probit and has that a = ", expression(lambda) )
-    itemloading_all = output$lambda[ which( rownames( output$lambda ) == varname ), ]
-    lmbdMarg = ( itemloading/1.7 ) / sqrt( 1 + sum((itemloading_all/1.7)^2) )
+    message("THIS IS NOT AN UPDATED VERSION DO NOT USE")
+    if(!silent) message("Loadings are marginalized by dividing with the square root of unexplained variance by the general factor.", expression(lambda) )
+    itemloading_specifics = output$lambda[ which( rownames( output$lambda ) == varname ),
+                                   which( colnames( output$lambda ) != dimname ) ]
+    lmbdMarg = ( itemloading ) / sqrt( 1 + sum((itemloading_all)^2) )
     unqvar = 1 - ( lmbdMarg^2 )
     # Item loading is changed to marginalized item loading.
-    itemloading = ( lmbdMarg / sqrt( unqvar ) ) * 1.7
+    itemloading = ( lmbdMarg / sqrt( unqvar ) )
     
   }
   if ( !marginalize & !silent ) message("Loadings are not marginalized and interpreted as conditional loadings if multiple factors have effects on same variables.")
