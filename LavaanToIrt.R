@@ -8,9 +8,11 @@ LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent fact
                                     dimmin = -6, 
                                     dimmax = 6, 
                                     marginalize = F,
-                                    silent = F) {
+                                    silent = F,
+                                    std = F) {
   
-  output = inspect( object = lavaanfit, what = "est" )
+  if( std ) {output = inspect( object = lavaanfit, what = "std" )
+  } else { output = inspect( object = lavaanfit, what = "est" ) }
 
   if ( !(varname %in% rownames( output$lambda )) ) stop( paste( varname, "not found in lavaan object." ) )
   if ( lavaanfit@Options$mimic != "Mplus") stop( "Please use mimic = 'Mplus' argument in lavaan." )
@@ -19,7 +21,8 @@ LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent fact
   
   itemloading = output$lambda[ which( rownames( output$lambda ) == varname ), dimname ]
   itemthresholds = output$tau[ grep( pattern = paste("^",varname,"\\b",sep=""), x = rownames( output$tau ) ) ]
-
+  itemtheta = output$theta[ varname, varname ]
+  
   itemloc = which( lavaanfit@Data@ov.names[[1]] == varname )
   itemlevels = as.character( 1 : ( length( itemthresholds ) + 1 ))
   nCat <- length( itemlevels ) 
@@ -29,7 +32,7 @@ LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent fact
   
   factorX = seq(dimmin, dimmax, .01)
   
-  if ( marginalize ) {
+  if ( marginalize & !std ) {
 
     if(!silent) message("Loadings are marginalized by dividing with the square root of unexplained variance by the general factor.", expression(lambda) )
     if(!silent) message("See Lintula 1st publication 2024 (hopefully) supplementary material for more details.")
@@ -42,15 +45,27 @@ LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent fact
     itemloading = itemloading / MarginalizingConstant
     itemthresholds = itemthresholds / MarginalizingConstant
     
+  } else if( marginalize & std  ) {
+    warning(" ------------------- Marginalization is not currently supported for a standardized solution. ------------")
+    if(!silent) message("Loadings are marginalized by dividing with the square root of unexplained variance by the general factor.", expression(lambda) )
+    if(!silent) message("See Lintula 1st publication 2024 (hopefully) supplementary material for more details.")
+    
+    itemloadings_specific = output$lambda[ which( rownames( output$lambda ) == varname ),
+                                           which( colnames( output$lambda ) != dimname ) ]
+    MarginalizingConstant = sqrt( itemtheta + as.numeric( itemloadings_specific %*% itemloadings_specific ) )
+    
+    # Item loading is changed to marginalized item loading, and itemthresholds are changed similarly.
+    itemloading = itemloading / MarginalizingConstant
+    itemthresholds = itemthresholds / MarginalizingConstant
   }
   if ( !marginalize & !silent ) message("Loadings are not marginalized and interpreted as conditional loadings if multiple factors have effects on same variables.")
   
   # Item Y indicates P( latentVariable = at some level | X is some category ):
   ProbTheta <- matrix(ncol = nCat, nrow = length(factorX))
-  ProbTheta[ , 1                ] <- pnorm( q =  itemthresholds[ 1 ] - itemloading * factorX ) # First category probability.
+  ProbTheta[ , 1                ] <- pnorm( q =  ( itemthresholds[ 1 ] - itemloading * factorX ) / sqrt( itemtheta ) ) # First category probability.
   ProbTheta[ , 2 : ( nCat - 1 ) ] <- sapply( 2 : ( nCat - 1 ), FUN = function( j ) { # Middle category probabilities.
-    pnorm( q = itemthresholds[ j ] - itemloading * factorX )  - pnorm( q = itemthresholds[ j - 1 ] - itemloading * factorX ) } ) 
-  ProbTheta[ , nCat             ] <- ( 1 - pnorm( q =  itemthresholds[ nCat - 1 ] - itemloading * factorX ) ) # Last category probability.
+    pnorm( q =( itemthresholds[ j ] - itemloading * factorX ) / sqrt( itemtheta ) )  - pnorm( q = ( itemthresholds[ j - 1 ] - itemloading * factorX ) / sqrt( itemtheta ) ) } ) 
+  ProbTheta[ , nCat             ] <- ( 1 - pnorm( q =  ( itemthresholds[ nCat - 1 ] - itemloading * factorX ) / sqrt( itemtheta ) ) ) # Last category probability.
   
   attr(ProbTheta, "Variable name") <- varname
   attr(ProbTheta, "Thresholds") <- itemthresholds
@@ -73,7 +88,7 @@ ItemInformation <- function( PorbabilityMatrix ) {
   nLevels <- ncol( PorbabilityMatrix )
   lambda <- attr( PorbabilityMatrix , "Loading" )
   
-  # Note: theta (i.e., unique factor variance, 'error', is set to 1 with theta parameterization by defaul.)
+  # Note: theta (i.e., unique factor variance, 'error', is set to 1 with theta parameterization by default.)
   # Hence, including it does not make a difference. Only included currently for future improvements.
   
   theta <- attr( PorbabilityMatrix , "ThetaParameter" ) 

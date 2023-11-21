@@ -79,6 +79,13 @@ LavaanResult_ideal <- sem(HypoModel_ideal,
                           mimic = "Mplus", 
                           parameterization = "theta", 
                           std.lv = T)
+LavaanResult_wrong <- sem(HypoModel_ideal, 
+                         data = X, 
+                         ordered = T, 
+                         estimator = "WLSMV", 
+                         mimic = "Mplus", 
+                         parameterization = "theta", 
+                         std.lv = T)
 latentVar <- seq(-6,6,.01)
 
 
@@ -87,6 +94,7 @@ out = inspect(LavaanResult, "est")
 out_ideal = inspect(LavaanResult_ideal, "est")
 lambda_ideal = out_ideal$lambda
 thrshlds_ideal = out_ideal$tau
+out_wrong = inspect(LavaanResult_wrong, "est")
 
 lambda_start = out$lambda[ , which( colnames( out$lambda ) == "p" ) ]
 lambda_specific = out$lambda[ , which( colnames( out$lambda ) != "p" ) ]
@@ -95,10 +103,11 @@ margC = sqrt( 1 + as.numeric( lambda_specific^2 ) )
 lambda = lambda_start / margC
 thrshlds = thrshlds_start / rep(margC, each = 3)
 
-simures1 <- data.frame(round(cbind(cbind(thrshlds_start, thrshlds),thrshlds_ideal), 3))
-names(simures1) <- c("Conditional", "Marginal", "Ideal")
-simures2 <- data.frame(round(cbind(cbind(lambda_start, lambda), lambda_ideal), 3))
-names(simures2) <- c("Conditional", "Marginal", "Ideal")
+
+simures1 <- data.frame(round(cbind(cbind(cbind(thrshlds_start, thrshlds),thrshlds_ideal), out_wrong$tau), 3))
+names(simures1) <- c("Conditional", "Marginal", "Ideal", "Wrong")
+simures2 <- data.frame(round(cbind(cbind(cbind(lambda_start, lambda), lambda_ideal), out_wrong$lambda), 3))
+names(simures2) <- c("Conditional", "Marginal", "Ideal", "Wrong")
 rownames(simures2) <- paste("lambda", 1:nrow(simures2))
 
 # The central observation here is that conditional estimates are brought closer to the ideal 'true' estimates 
@@ -111,11 +120,49 @@ simures1;simures2
 # The specified models are basic 'restricted' 'bi-item-factor' models (the jargon is so thick man).
 ##### Run tests.#
 
-testRes <- LavaanIRTProbabilities( lavaanfit = LavaanResult,  varname = "X3", dimname = "p") # 
+dev.new(noRStudioGD = T)
+par(mfrow = c(3,3))
+testRes <- LavaanIRTProbabilities( lavaanfit = LavaanResult,  varname = "X1", dimname = "p") 
+plot(ItemInformation(testRes), type = "l", main = "Conditional")
+testRes <- LavaanIRTProbabilities( lavaanfit = LavaanResult,  varname = "X1", dimname = "p", std = T) # 
+plot(ItemInformation(testRes), type = "l", main = "Conditional, standardized")
+testRes <- LavaanIRTProbabilities( lavaanfit = LavaanResult,  varname = "X1", dimname = "p", std = T, marginalize = T) # 
+plot(ItemInformation(testRes), type = "l", main = "Marginalized, standardized")
+testRes <- LavaanIRTProbabilities( lavaanfit = LavaanResult,  varname = "X1", dimname = "p",
+                                   marginalize = T) # 
+plot(ItemInformation(testRes), type = "l", main = "Marginalized")
+testRes <- LavaanIRTProbabilities( lavaanfit = LavaanResult_ideal,  varname = "X1", dimname = "p") # 
+plot(ItemInformation(testRes), type = "l", main = "Ideal unidimensional")
+testRes <- LavaanIRTProbabilities( lavaanfit = LavaanResult_wrong,  varname = "X1", dimname = "p") # 
+plot(ItemInformation(testRes), type = "l", main = "Wrong unidimensional naive model")
+
+comparisonModel <- mirt(X_ideal, model = 1, itemtype = "graded" )
+plot(iteminfo(extract.item(comparisonModel,item = "X1"), Theta = latentVar), type = "l", main = "Mirt ideal")
+comparisonModel <- mirt(X, model = 1, itemtype = "graded" )
+plot(iteminfo(extract.item(comparisonModel,item = "X1"), Theta = latentVar), type = "l", main = "Mirt wrong naive model")
+
+mpar(mfrow = c(1,1))
+
+
 testRes2 <- LavaanIRTProbabilities( lavaanfit = LavaanResult,  varname = "X3", dimname = "p", 
                                     marginalize = T) # 
 
-# Tests are made in the future.
+# Note that mirt package uses different estimator.
+# Yet the difference between the marginal information and ideal scenario mirt -package estimated information is negligible:
+testRes <- LavaanIRTProbabilities( lavaanfit = LavaanResult,  varname = "X1", dimname = "p",
+                                   marginalize = T) # 
+comparisonModel <- mirt(X_ideal, model = 1, itemtype = "graded" )
+plot(ItemInformation(testRes) - iteminfo(extract.item(comparisonModel,item = "X1"), Theta = latentVar),
+                                                                          ylim = c(-1,1), type = "l")
+mean(ItemInformation(testRes) - iteminfo(extract.item(comparisonModel,item = "X1"), Theta = latentVar))
+
+# Actually the differnece is equal to when using the ideal scenario WLSMV estimator instead of the marginalized WLSMV result.
+testRes <- LavaanIRTProbabilities( lavaanfit = LavaanResult_ideal,  varname = "X1", dimname = "p") # 
+plot(ItemInformation(testRes) - iteminfo(extract.item(comparisonModel,item = "X1"), Theta = latentVar),
+     ylim = c(-1,1), type = "l")
+mean(ItemInformation(testRes) - iteminfo(extract.item(comparisonModel,item = "X1"), Theta = latentVar))
+
+# More tests are made in the future.
 
 
 
@@ -155,6 +202,6 @@ dev.off()
 
 
 # mirt -package comparisons for reference. Note, that the estimation method is not exactly the same.
-comparisonModel <- mirt(X, model = 1, itemtype = "graded" )
+comparisonModel <- mirt(X_ideal, model = 1, itemtype = "graded" )
 plot(comparisonModel, main = "", type = "info")
 itemplot(comparisonModel, item = "X3", main = "", type = "info")
