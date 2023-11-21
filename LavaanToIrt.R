@@ -34,10 +34,11 @@ LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent fact
     if(!silent) message("Loadings are marginalized by dividing with the square root of unexplained variance by the general factor.", expression(lambda) )
     itemloadings_specific = output$lambda[ which( rownames( output$lambda ) == varname ),
                                    which( colnames( output$lambda ) != dimname ) ]
-    lmbdMarg = sqrt( 1 + itemloadings_specific %*% itemloadings_specific )
+    MarginalizingConstant = sqrt( 1 + as.numeric( itemloadings_specific %*% itemloadings_specific ) )
     
-    # Item loading is changed to marginalized item loading.
-    itemloading = ( lmbdMarg / sqrt( unqvar ) )
+    # Item loading is changed to marginalized item loading, and itemthresholds are changed similarly.
+    itemloading = itemloading / MarginalizingConstant
+    itemthresholds = itemthresholds / MarginalizingConstant
     
   }
   if ( !marginalize & !silent ) message("Loadings are not marginalized and interpreted as conditional loadings if multiple factors have effects on same variables.")
