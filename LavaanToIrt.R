@@ -54,7 +54,7 @@ LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent fact
                                            which( colnames( output$lambda ) != dimname ) ]
     MarginalizingConstant = sqrt( itemtheta + as.numeric( itemloadings_specific %*% itemloadings_specific ) )
     
-    # Item loading is changed to marginalized item loading, and itemthresholds are changed similarly.
+    # Item loading is changed to marginalized item loading. itemthresholds are changed similarly.
     itemloading = itemloading / MarginalizingConstant
     itemthresholds = itemthresholds / MarginalizingConstant
   }
