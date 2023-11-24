@@ -34,8 +34,6 @@ LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent fact
   
   if ( marginalize & !std ) {
 
-    if(!silent) message("Loadings are marginalized by dividing with the square root of unexplained variance by the general factor.", expression(lambda) )
-    if(!silent) message("See Lintula 1st publication 2024 (hopefully) supplementary material for more details.")
     
     itemloadings_specific = output$lambda[ which( rownames( output$lambda ) == varname ),
                                    which( colnames( output$lambda ) != dimname ) ]
@@ -47,8 +45,7 @@ LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent fact
     
   } else if( marginalize & std  ) {
     warning(" ------------------- Marginalization is not currently supported for a standardized solution. ------------")
-    if(!silent) message("Loadings are marginalized by dividing with the square root of unexplained variance by the general factor.", expression(lambda) )
-    if(!silent) message("See Lintula 1st publication 2024 (hopefully) supplementary material for more details.")
+
     
     itemloadings_specific = output$lambda[ which( rownames( output$lambda ) == varname ),
                                            which( colnames( output$lambda ) != dimname ) ]
@@ -58,7 +55,6 @@ LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent fact
     itemloading = itemloading / MarginalizingConstant
     itemthresholds = itemthresholds / MarginalizingConstant
   }
-  if ( !marginalize & !silent ) message("Loadings are not marginalized and interpreted as conditional loadings if multiple factors have effects on same variables.")
   
   # Item Y indicates P( latentVariable = at some level | X is some category ):
   ProbTheta <- matrix(ncol = nCat, nrow = length(factorX))
