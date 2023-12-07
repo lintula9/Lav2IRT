@@ -22,6 +22,7 @@ LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent fact
   itemloading = output$lambda[ which( rownames( output$lambda ) == varname ), dimname ]
   itemthresholds = output$tau[ grep( pattern = paste("^",varname,"\\b",sep=""), x = rownames( output$tau ) ) ]
   itemtheta = output$theta[ varname, varname ]
+  factorcorr = output$psi
   
   itemloc = which( lavaanfit@Data@ov.names[[1]] == varname )
   itemlevels = as.character( 1 : ( length( itemthresholds ) + 1 ))
@@ -34,10 +35,10 @@ LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent fact
   
   if ( marginalize & !std ) {
 
-    
+    specific_corr = factorcorr[ -grep(dimname, colnames(factorcorr)) , -grep(dimname, rownames(factorcorr)) ]
     itemloadings_specific = output$lambda[ which( rownames( output$lambda ) == varname ),
                                    which( colnames( output$lambda ) != dimname ) ]
-    MarginalizingConstant = sqrt( 1 + as.numeric( itemloadings_specific %*% itemloadings_specific ) )
+    MarginalizingConstant = sqrt( 1 + as.numeric( t(itemloadings_specific) %*% specific_corr %*% itemloadings_specific ) )
     
     # Item loading is changed to marginalized item loading, and itemthresholds are changed similarly.
     itemloading = itemloading / MarginalizingConstant
@@ -49,7 +50,7 @@ LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent fact
     
     itemloadings_specific = output$lambda[ which( rownames( output$lambda ) == varname ),
                                            which( colnames( output$lambda ) != dimname ) ]
-    MarginalizingConstant = sqrt( itemtheta + as.numeric( itemloadings_specific %*% itemloadings_specific ) )
+    MarginalizingConstant = sqrt( itemtheta + as.numeric( t(itemloadings_specific) %*% specific_corr %*% itemloadings_specific ) )
     
     # Item loading is changed to marginalized item loading. itemthresholds are changed similarly.
     itemloading = itemloading / MarginalizingConstant

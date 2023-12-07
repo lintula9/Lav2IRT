@@ -124,7 +124,7 @@ simures1;simures2
 # The specified models are basic 'restricted' 'bi-item-factor' models (the jargon is so thick man).
 ##### Run tests.#
 
-if(FALSE) {dev.new(noRStudioGD = T);par(mfrow = c(3,3))
+if(T) {dev.new(noRStudioGD = T);par(mfrow = c(3,3))
 testRes <- LavaanIRTProbabilities( lavaanfit = LavaanResult,  varname = "X1", dimname = "p");plot(ItemInformation(testRes), type = "l", main = "Conditional")
 testRes <- LavaanIRTProbabilities( lavaanfit = LavaanResult,  varname = "X1", dimname = "p", std = T);plot(ItemInformation(testRes), type = "l", main = "Conditional, standardized")
 testRes <- LavaanIRTProbabilities( lavaanfit = LavaanResult,  varname = "X1", dimname = "p", std = T, marginalize = T);plot(ItemInformation(testRes), type = "l", main = "Marginalized, standardized")
@@ -247,6 +247,7 @@ simures1;simures2
 
 
 # Plots (not updated 21.11.2023) ------
+if(F) {
 # Assumed scenario:
 plot(x=latentVar,as.numeric(ItemInformation(testRes)), ylim = c(0,1), type = "l", 
      ylab = "Information",  main = "A", cex.lab = 1.2, xlab = "General psychopathology dimension", yaxt = "n", xaxt = "n")
@@ -277,3 +278,4 @@ dev.off()
 comparisonModel <- mirt(X_ideal, model = 1, itemtype = "graded" )
 plot(comparisonModel, main = "", type = "info")
 itemplot(comparisonModel, item = "X3", main = "", type = "info")
+}
