@@ -179,8 +179,9 @@ RandomInformation <- function( lavaanfit,
                                dimname,
                                n.items = 10,
                                dimmin = -6,
+                               dimmax = 6,
                                itemnames = NULL,
-                               dimmax = 6, ... ) { # Test information is the sum of all item informations.
+                               ... ) { # Test information is the sum of all item informations.
   
   randomTestInfo = matrix(0, nrow = length(seq(dimmin, dimmax, .01)), ncol = boot.n)
   
@@ -189,7 +190,7 @@ RandomInformation <- function( lavaanfit,
   
   
   pbsapply(1:boot.n, FUN = function( i ) {
-    if(exists("itemnames")) sampleItems = sample(itemnames, size = n.items, replace = T) else sampleItems = sample(lavaanfit@Data@ov.names[[1]], size = n.items, replace = T)
+    if(!is.null(itemnames)) sampleItems = sample(itemnames, size = n.items, replace = T) else sampleItems = sample(lavaanfit@Data@ov.names[[1]], size = n.items, replace = T)
     randomTestInfo[ , i ] <<- rowSums( sapply(sampleItems, 
                                       FUN = function( x ) ItemInformation( LavaanIRTProbabilities( lavaanfit, dimname = dimname, varname = x, dimmin = dimmin, dimmax = dimmax, ... ) ) ) )
   })
