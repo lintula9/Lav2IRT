@@ -200,9 +200,9 @@ RandomInformation <- function( lavaanfit,
   rownames(randomTestInfo) <- paste( "dimvalue: ", 1:length( seq( dimmin, dimmax, .01 ) ), sep = "" )
 
   return( list(RandomTestInfo = randomTestInfo, 
-               median = apply(randomTestInfo, MARGIN = 1, FUN = median), 
-               mean = apply(randomTestInfo, MARGIN = 1, FUN = mean), 
-               quantile_90th = apply( randomTestInfo, MARGIN = 1, FUN = function( x ) quantile( x, .90 )) ) )
+               median = apply(randomTestInfo, MARGIN = 1, FUN = median, na.rm = T), 
+               mean = apply(randomTestInfo, MARGIN = 1, FUN = mean, na.rm = T), 
+               quantile_90th = apply( randomTestInfo, MARGIN = 1, FUN = function( x ) quantile( x, .90, na.rm = T )) ) )
   
 }
 
