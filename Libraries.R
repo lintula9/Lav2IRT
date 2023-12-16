@@ -1,5 +1,5 @@
 # Libraries
-package_names <- c("lavaan", "mirt")
+package_names <- c("lavaan", "mirt", "pbapply", "RColorBrewer", "ggplot2")
 
 for (i in package_names){
   if ( !requireNamespace( i, 

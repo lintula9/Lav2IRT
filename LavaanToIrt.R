@@ -1,7 +1,8 @@
 # Lavaan to IRT 16.11.2023.
 # Recently added dimname and plotting options.
 # Recently added marginalizing procedure.
-
+# 16.12.2023 marginalization for correlated specific factors has been added, random sampling procedure for informatio curves has been added.
+source("Libraries.R")
 LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent factor level, given the model and observing some value of some item.
                                     varname, 
                                     dimname,
@@ -119,17 +120,16 @@ ItemInformation <- function( PorbabilityMatrix ) {
   
 }
 
-TestInformation <- function( lavaanfit ) { # Test information is the sum of all item informations.
+TestInformation <- function( lavaanfit, dimname ) { # Test information is the sum of all item informations.
   
   output = inspect( object = lavaanfit, what = "est" )
   
-  if ( dim( output$lambda )[ 2 ] > 1 ) stop( "Plots only given for one factor models." )
   if ( lavaanfit@Options$mimic != "Mplus") stop( "Please use mimic = 'Mplus' argument in lavaan." )
   if ( lavaanfit@Options$parameterization != "theta") stop( "Please use parameterization = 'theta' argument in lavaan." )
   
-  testInfo <- rowSums( sapply(lavaanfit@Data@ov.names[[1]], FUN = function( x ) ItemInformation( LavaanIRTProbabilities( lavaanfit, varname = x ) ) ) )
+  testInfo <- rowSums( sapply(lavaanfit@Data@ov.names[[1]], FUN = function( x ) ItemInformation( LavaanIRTProbabilities( lavaanfit, dimname, varname = x ) ) ) )
   attr(testInfo, "Plotting method") <- "testInfo"
-  class("testInfo") <- "Lav2IRT"
+  class(testInfo) <- "Lav2IRT"
   
   return(testInfo)
 }
@@ -167,3 +167,42 @@ setMethod("plot", "Lav2IRT",
             
             par( mar = c( 5.1, 4.1, 4.1, 2.1 ), xpd = F)
           })
+
+# Random information generator -----
+
+# This function samples items from the item set, calculates test information curves for these samples.
+# This enables comparing a test, to random samples mean/median information curves as well as sampled percentiles.
+# I.e., bootsrapping.
+
+RandomInformation <- function( lavaanfit, 
+                               boot.n = 1000,
+                               dimname,
+                               n.items = 10,
+                               dimmin = -6,
+                               itemnames = NULL,
+                               dimmax = 6, ... ) { # Test information is the sum of all item informations.
+  
+  randomTestInfo = matrix(0, nrow = length(seq(dimmin, dimmax, .01)), ncol = boot.n)
+  
+  if ( lavaanfit@Options$mimic != "Mplus") stop( "Please use mimic = 'Mplus' argument in lavaan." )
+  if ( lavaanfit@Options$parameterization != "theta") stop( "Please use parameterization = 'theta' argument in lavaan." )
+  
+  
+  pbsapply(1:boot.n, FUN = function( i ) {
+    if(exists("itemnames")) sampleItems = sample(itemnames, size = n.items, replace = T) else sampleItems = sample(lavaanfit@Data@ov.names[[1]], size = n.items, replace = T)
+    randomTestInfo[ , i ] <<- rowSums( sapply(sampleItems, 
+                                      FUN = function( x ) ItemInformation( LavaanIRTProbabilities( lavaanfit, dimname = dimname, varname = x, dimmin = dimmin, dimmax = dimmax, ... ) ) ) )
+  })
+
+  class(randomTestInfo) <- "Lav2IRT"
+  colnames(randomTestInfo) <- paste( "Sample.", 1:boot.n, sep = "" )
+  rownames(randomTestInfo) <- paste( "dimvalue: ", 1:length( seq( dimmin, dimmax, .01 ) ), sep = "" )
+
+  return( list(RandomTestInfo = randomTestInfo, 
+               median = apply(randomTestInfo, MARGIN = 1, FUN = median), 
+               mean = apply(randomTestInfo, MARGIN = 1, FUN = mean), 
+               quantile_90th = apply( randomTestInfo, MARGIN = 1, FUN = function( x ) quantile( x, .90 )) ) )
+  
+}
+
+
