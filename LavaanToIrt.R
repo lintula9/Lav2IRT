@@ -77,6 +77,79 @@ LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent fact
   return( ProbTheta )
 }
 
+L2IRTPointP <- function( lavaanfit, # Probability of some latent factor level, given the model and observing some value of some item.
+                                    varname, 
+                                    dimname,
+                                    points = 0,
+                                    marginalize = F,
+                                    silent = F,
+                                    std = F) {
+  
+  if( std ) { output = inspect( object = lavaanfit, what = "std" )
+  } else { output = inspect( object = lavaanfit, what = "est" ) }
+  
+  if ( !(varname %in% rownames( output$lambda )) ) stop( paste( varname, "not found in lavaan object." ) )
+  if ( lavaanfit@Options$mimic != "Mplus") stop( "Please use mimic = 'Mplus' argument in lavaan." )
+  if ( lavaanfit@Options$parameterization != "theta") stop( "Please use parameterization = 'theta' argument in lavaan." )
+  if ( lavaanfit@Options$std.lv != T ) stop( "Please use std.lv = TRUE argument in lavaan." )
+  
+  itemloading = output$lambda[ which( rownames( output$lambda ) == varname ), dimname ]
+  itemthresholds = output$tau[ grep( pattern = paste("^",varname,"\\b",sep=""), x = rownames( output$tau ) ) ]
+  itemtheta = output$theta[ varname, varname ]
+  factorcorr = output$psi
+  
+  itemloc = which( lavaanfit@Data@ov.names[[1]] == varname )
+  itemlevels = as.character( 1 : ( length( itemthresholds ) + 1 ))
+  nCat <- length( itemlevels ) 
+  
+  factormean = output$alpha[ which( rownames( output$alpha ) == dimname ) ]
+  factorvar = output$psi[ dimname, dimname ]
+  
+  if ( marginalize & !std ) {
+    
+    specific_corr = factorcorr[ -grep(dimname, colnames(factorcorr)) , -grep(dimname, rownames(factorcorr)) ]
+    itemloadings_specific = output$lambda[ which( rownames( output$lambda ) == varname ),
+                                           which( colnames( output$lambda ) != dimname ) ]
+    MarginalizingConstant = sqrt( 1 + as.numeric( t(itemloadings_specific) %*% specific_corr %*% itemloadings_specific ) )
+    
+    # Item loading is changed to marginalized item loading, and item thresholds are changed similarly.
+    itemloading = itemloading / MarginalizingConstant
+    itemthresholds = itemthresholds / MarginalizingConstant
+    
+  } else if( marginalize & std  ) {
+    warning(" ------------------- Marginalization is not currently supported for a standardized solution. ------------")
+    
+    
+    itemloadings_specific = output$lambda[ which( rownames( output$lambda ) == varname ),
+                                           which( colnames( output$lambda ) != dimname ) ]
+    MarginalizingConstant = sqrt( itemtheta + as.numeric( t(itemloadings_specific) %*% specific_corr %*% itemloadings_specific ) )
+    
+    # Item loading is changed to marginalized item loading. itemthresholds are changed similarly.
+    itemloading = itemloading / MarginalizingConstant
+    itemthresholds = itemthresholds / MarginalizingConstant
+  }
+  
+  # Item Y indicates P( latentVariable = at some level | X is some category ):
+  ProbTheta <- matrix(ncol = nCat, nrow = length(points))
+  ProbTheta[ , 1                ] <- pnorm( q =  ( itemthresholds[ 1 ] - itemloading * points ) / sqrt( itemtheta ) ) # First category probability.
+  ProbTheta[ , 2 : ( nCat - 1 ) ] <- sapply( 2 : ( nCat - 1 ), FUN = function( j ) { # Middle category probabilities.
+    pnorm( q =( itemthresholds[ j ] - itemloading * points ) / sqrt( itemtheta ) )  - pnorm( q = ( itemthresholds[ j - 1 ] - itemloading * points ) / sqrt( itemtheta ) ) } ) 
+  ProbTheta[ , nCat             ] <- ( 1 - pnorm( q =  ( itemthresholds[ nCat - 1 ] - itemloading * points ) / sqrt( itemtheta ) ) ) # Last category probability.
+  
+  attr(ProbTheta, "Variable name") <- varname
+  attr(ProbTheta, "Thresholds") <- itemthresholds
+  attr(ProbTheta, "Loading") <- itemloading
+  attr(ProbTheta, "lvarname") <- dimname
+  attr(ProbTheta, "Dimension interval") <- range(points)
+  attr(ProbTheta, "ThetaParameter") <- output$theta[ varname, varname ]
+  attr(ProbTheta, "Plotting method") <- "ICC"
+  attr(ProbTheta, "IsProbMat") <- T
+  
+  class(ProbTheta) <- "Lav2IRT"
+  
+  return( ProbTheta )
+}
+
 ItemInformation <- function( PorbabilityMatrix ) {
   if(class(PorbabilityMatrix) != "Lav2IRT") stop( paste( "Provided object is not of class Lav2IRT." ))
   if(!(attr(PorbabilityMatrix, "IsProbMat"))) stop( paste( "Provided object is not a Lav2IRT matrix of probabilities." ))
