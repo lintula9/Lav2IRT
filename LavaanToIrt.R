@@ -167,7 +167,7 @@ ItemInformation <- function( PorbabilityMatrix ) {
   Item_Q[ , 2 ] <- PorbabilityMatrix[ , 1] # When level is 1.
   Item_Q[ , 3 : ( nLevels ) ] <-
     sapply( 2:(nLevels - 1), FUN = function( j ) { # For 1 to nlevels - 1. Last column is spared for the last level.
-      apply( PorbabilityMatrix[ , 1 : j], MARGIN = 1, sum )
+      apply( PorbabilityMatrix[ , 1 : j, drop = F ], MARGIN = 1, sum )
     } )
   Item_Q[ , nLevels + 1 ] <- 1 # When level is last category.
   
