@@ -175,9 +175,9 @@ ItemInformation <- function( ProbabilityMatrix ) {
     
     (3.29 * (lambda^2) / theta) * 
       rowSums(
-        sapply( 2:( ncol( Item_Q )), FUN = function( r ) {
+       matrix( sapply( 2:( ncol( Item_Q )), FUN = function( r ) {
           ( ( Item_Q[ , r, drop = F  ] * ( 1 - Item_Q[ , r, drop = F  ] ) ) - ( Item_Q[ , r -1, drop = F  ] * (( 1 - Item_Q[ , r - 1, drop = F  ] )) ) )^2 / 
-            (  ProbabilityMatrix[ , r - 1, drop = F  ] )
+            (  ProbabilityMatrix[ , r - 1, drop = F  ] ), ncol = ncol(Item_Q) - 1 )
         }, simplify = "matrix")) )
   
   attr(IIC, "Plotting method") <- "IIC"
