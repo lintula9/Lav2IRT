@@ -150,24 +150,24 @@ L2IRTPointP <- function( lavaanfit, # Probability of some latent factor level, g
   return( ProbTheta )
 }
 
-ItemInformation <- function( PorbabilityMatrix ) {
-  if(class(PorbabilityMatrix) != "Lav2IRT") stop( paste( "Provided object is not of class Lav2IRT." ))
-  if(!(attr(PorbabilityMatrix, "IsProbMat"))) stop( paste( "Provided object is not a Lav2IRT matrix of probabilities." ))
+ItemInformation <- function( ProbabilityMatrix ) {
+  if(class(ProbabilityMatrix) != "Lav2IRT") stop( paste( "Provided object is not of class Lav2IRT." ))
+  if(!(attr(ProbabilityMatrix, "IsProbMat"))) stop( paste( "Provided object is not a Lav2IRT matrix of probabilities." ))
   
-  nLevels <- ncol( PorbabilityMatrix )
-  lambda <- attr( PorbabilityMatrix , "Loading" )
+  nLevels <- ncol( ProbabilityMatrix )
+  lambda <- attr( ProbabilityMatrix , "Loading" )
   
   # Note: theta (i.e., unique factor variance, 'error', is set to 1 with theta parameterization by default.)
   # Hence, including it does not make a difference. Only included currently for future improvements.
   
-  theta <- attr( PorbabilityMatrix , "ThetaParameter" ) 
+  theta <- attr( ProbabilityMatrix , "ThetaParameter" ) 
   
-  Item_Q <- matrix(ncol = nLevels + 1 , nrow = nrow(PorbabilityMatrix)) # Number of columns is nlevels + 1 because we need '0' level/category.
+  Item_Q <- matrix(ncol = nLevels + 1 , nrow = nrow(ProbabilityMatrix)) # Number of columns is nlevels + 1 because we need '0' level/category.
   Item_Q[ , 1 ] <- 0 # When level is 0.
-  Item_Q[ , 2 ] <- PorbabilityMatrix[ , 1] # When level is 1.
+  Item_Q[ , 2 ] <- ProbabilityMatrix[ , 1] # When level is 1.
   Item_Q[ , 3 : ( nLevels ) ] <-
     sapply( 2:(nLevels - 1), FUN = function( j ) { # For 1 to nlevels - 1. Last column is spared for the last level.
-      apply( PorbabilityMatrix[ , 1 : j, drop = F ], MARGIN = 1, sum )
+      apply( ProbabilityMatrix[ , 1 : j, drop = F ], MARGIN = 1, sum )
     } )
   Item_Q[ , nLevels + 1 ] <- 1 # When level is last category.
   
@@ -177,14 +177,14 @@ ItemInformation <- function( PorbabilityMatrix ) {
       rowSums(
         sapply( 2:( ncol( Item_Q )), FUN = function( r ) {
           ( ( Item_Q[ , r ] * ( 1 - Item_Q[ , r ] ) ) - ( Item_Q[ , r -1 ] * (( 1 - Item_Q[ , r - 1 ] )) ) )^2 / 
-            (  PorbabilityMatrix[ , r - 1 ] )
+            (  ProbabilityMatrix[ , r - 1 ] )
         }, simplify = "matrix")) )
   
   attr(IIC, "Plotting method") <- "IIC"
-  attr(IIC, "Dimension interval") <- attr( PorbabilityMatrix, "Dimension interval" )
-  attr(IIC, "lvarname") <- attr( PorbabilityMatrix, "lvarname" )
-  attr(IIC, "xsequence") <- seq(attr(PorbabilityMatrix, "Dimension interval")[1], 
-                                attr(PorbabilityMatrix, "Dimension interval")[2], .1)
+  attr(IIC, "Dimension interval") <- attr( ProbabilityMatrix, "Dimension interval" )
+  attr(IIC, "lvarname") <- attr( ProbabilityMatrix, "lvarname" )
+  attr(IIC, "xsequence") <- seq(attr(ProbabilityMatrix, "Dimension interval")[1], 
+                                attr(ProbabilityMatrix, "Dimension interval")[2], .1)
   class(IIC) <- "Lav2IRT"
   
   return( IIC )
