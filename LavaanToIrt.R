@@ -1,7 +1,5 @@
-# Lavaan to IRT 16.11.2023.
-# Recently added dimname and plotting options.
-# Recently added marginalizing procedure.
-# 16.12.2023 marginalization for correlated specific factors has been added, random sampling procedure for informatio curves has been added.
+# Lavaan to IRT 20.3.2024.
+# Recently added entropy function.
 source("Libraries.R")
 LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent factor level, given the model and observing some value of some item.
                                     varname, 
@@ -14,7 +12,7 @@ LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent fact
   
   if( std ) {output = inspect( object = lavaanfit, what = "std" )
   } else { output = inspect( object = lavaanfit, what = "est" ) }
-
+  
   if ( !(varname %in% rownames( output$lambda )) ) stop( paste( varname, "not found in lavaan object." ) )
   if ( lavaanfit@Options$mimic != "Mplus") stop( "Please use mimic = 'Mplus' argument in lavaan." )
   if ( lavaanfit@Options$parameterization != "theta") stop( "Please use parameterization = 'theta' argument in lavaan." )
@@ -35,10 +33,10 @@ LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent fact
   factorX = seq(dimmin, dimmax, .01)
   
   if ( marginalize & !std ) {
-
+    
     specific_corr = factorcorr[ -grep(dimname, colnames(factorcorr)) , -grep(dimname, rownames(factorcorr)) ]
     itemloadings_specific = output$lambda[ which( rownames( output$lambda ) == varname ),
-                                   which( colnames( output$lambda ) != dimname ) ]
+                                           which( colnames( output$lambda ) != dimname ) ]
     MarginalizingConstant = sqrt( 1 + as.numeric( t(itemloadings_specific) %*% specific_corr %*% itemloadings_specific ) )
     
     # Item loading is changed to marginalized item loading, and itemthresholds are changed similarly.
@@ -47,7 +45,7 @@ LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent fact
     
   } else if( marginalize & std  ) {
     warning(" ------------------- Marginalization is not currently supported for a standardized solution. ------------")
-
+    
     
     itemloadings_specific = output$lambda[ which( rownames( output$lambda ) == varname ),
                                            which( colnames( output$lambda ) != dimname ) ]
@@ -192,13 +190,13 @@ RandomInformation <- function( lavaanfit,
   pbsapply(1:boot.n, FUN = function( i ) {
     if(!is.null(itemnames)) sampleItems = sample(itemnames, size = n.items, replace = T) else sampleItems = sample(lavaanfit@Data@ov.names[[1]], size = n.items, replace = T)
     randomTestInfo[ , i ] <<- rowSums( sapply(sampleItems, 
-                                      FUN = function( x ) ItemInformation( LavaanIRTProbabilities( lavaanfit, dimname = dimname, varname = x, dimmin = dimmin, dimmax = dimmax, ... ) ) ) )
+                                              FUN = function( x ) ItemInformation( LavaanIRTProbabilities( lavaanfit, dimname = dimname, varname = x, dimmin = dimmin, dimmax = dimmax, ... ) ) ) )
   })
-
+  
   class(randomTestInfo) <- "Lav2IRT"
   colnames(randomTestInfo) <- paste( "Sample.", 1:boot.n, sep = "" )
   rownames(randomTestInfo) <- paste( "dimvalue: ", 1:length( seq( dimmin, dimmax, .01 ) ), sep = "" )
-
+  
   return( list(RandomTestInfo = randomTestInfo, 
                median = apply(randomTestInfo, MARGIN = 1, FUN = median, na.rm = T), 
                mean = apply(randomTestInfo, MARGIN = 1, FUN = mean, na.rm = T), 
@@ -206,4 +204,13 @@ RandomInformation <- function( lavaanfit,
   
 }
 
+# Entropy -----
+# The below function can be used to calculate entropy for, for example, information.
 
+Entropy <- function( FUN, lower = -Inf, upper = Inf ) {
+  NormConstant <- integrate( FUN , lower = lower, upper = upper )$value
+  plogp = function(x) ( FUN(x) / NormConstant ) * log(FUN(x) / NormConstant)
+  Entropy = -1*integrate( plogp, lower = lower, upper = upper )$value
+  return( Entropy )
+      }
+  
