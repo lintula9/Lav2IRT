@@ -1,5 +1,7 @@
 # Libraries
-package_names <- c("lavaan", "mirt", "pbapply", "RColorBrewer", "ggplot2", "StanHeaders", "Rcpp")
+package_names <- c("lavaan", "mirt", "pbapply", "RColorBrewer", "ggplot2", "StanHeaders", "Rcpp", "BH", "RcppEigen", "RcppParallel")
+
+if( !requireNamespace("StanHeaders", quietly = F) ) install.packages("StanHeaders", repos = c("https://mc-stan.org/r-packages/", getOption("repos")))
 
 for (i in package_names){
   if ( !requireNamespace( i, 
@@ -15,3 +17,5 @@ names(cols) <- c("Total", "Male", "Female")
 theme_set(theme_bw())
 options(ggplot2.discrete.colour= cols)
 par(family = "serif")
+
+
