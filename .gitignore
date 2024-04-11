@@ -2,3 +2,4 @@
 .Rhistory
 .RData
 .Ruserdata
+gradient autodiff test.R

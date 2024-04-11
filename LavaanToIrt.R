@@ -2,6 +2,8 @@
 # Recently added dimname and plotting options.
 # Recently added marginalizing procedure.
 # 16.12.2023 marginalization for correlated specific factors has been added, random sampling procedure for informatio curves has been added.
+# Standardized solutions are not supported - and are unnecesary.
+
 source("Libraries.R")
 LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent factor level, given the model and observing some value of some item.
                                     varname, 
@@ -206,4 +208,32 @@ RandomInformation <- function( lavaanfit,
   
 }
 
+# Separate marginalization function:
+Lav2IRTMarginalize <- function( lavaanfit,
+                                varname,
+                                dimname) {
+  
+  output = inspect( object = lavaanfit, what = "est" ) 
 
+  if ( !(varname %in% rownames( output$lambda )) ) stop( paste( varname, "not found in lavaan object." ) )
+  if ( lavaanfit@Options$mimic != "Mplus") stop( "Please use mimic = 'Mplus' argument in lavaan." )
+  if ( lavaanfit@Options$parameterization != "theta") stop( "Please use parameterization = 'theta' argument in lavaan." )
+  if ( lavaanfit@Options$std.lv != T ) stop( "Please use std.lv = TRUE argument in lavaan." )
+  
+  itemloading = output$lambda[ which( rownames( output$lambda ) == varname ), dimname ]
+  itemthresholds = output$tau[ grep( pattern = paste("^",varname,"\\b",sep=""), x = rownames( output$tau ) ) ]
+
+  specific_corr = output$psi[ -grep(dimname, colnames(output$psi)) , -grep(dimname, rownames(output$psi)) ]
+  itemloadings_specific = output$lambda[ which( rownames( output$lambda ) == varname ),
+                                         which( colnames( output$lambda ) != dimname ) ]
+  MarginalizingConstant = sqrt( 1 + as.numeric( t(itemloadings_specific) %*% specific_corr %*% itemloadings_specific ) )
+  
+  # Item loading is changed to marginalized item loading, and itemthresholds are changed similarly.
+  itemloading = itemloading / MarginalizingConstant
+  itemthresholds = itemthresholds / MarginalizingConstant
+  
+  return( list( Marginal_loading = itemloading, 
+                Marginal_thresholds = itemthresholds, 
+                Marginalizing_factor = MarginalizingConstant))
+  
+  }

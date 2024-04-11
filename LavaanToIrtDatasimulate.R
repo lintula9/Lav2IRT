@@ -6,6 +6,7 @@
 
 library(lavaan);library(mirt);par(family = "serif")
 
+# No nuisance 'ideal model'.
 IdealModel <- "
     
     # Big general factor
@@ -20,6 +21,7 @@ IdealModel <- "
 
     p ~~ 1*p "
 
+# True model, with nuisance.
 TrueModel <- "
     
     # Big general factor
@@ -50,6 +52,8 @@ X_ideal <- tibble(simulateData(IdealModel, model.type = F,
                          std.lv = T, 
                          sample.nobs = 10000, 
                          standardized = T))
+
+# Hypothetical model with nuisance.
 HypoModel <-  "
     
     p =~ X1 + X2 + X3 + X4 + X5 + X6
@@ -62,6 +66,7 @@ HypoModel <-  "
     nuisance ~~ 1*nuisance
     p ~~ 1*p "
 
+# Hypothetical model without nuisance.
 HypoModel_ideal <-  "
     
     p =~ X1 + X2 + X3 + X4 + X5 + X6
@@ -236,11 +241,11 @@ rownames(simures2) <- paste("lambda", 1:nrow(simures2))
 # The central observation here is that conditional estimates are brought closer to the ideal 'true' estimates 
 # this simulation:
 simures1;simures2
-# Note, that unstandardized estimates for the true 0.6 simulation estimate of lambdas are correct, since the simulation model uses different observed variance than
+# Note, that unstandardized estimates for the true 0.6 simulation estimate of lambdas are (near) correct, since the simulation model uses different observed variance than
 # what is used in estimation for endogenous variables.
 # The most pathological variable, X4, which loads onto 3 different orthogonal factors gets a marginal lambda of ~.73, which is acceptable.
 # Also the marginal tau estimates are working as intended and resemble those obtained from ideal models.
-# Also note, that the differneces between marginal and conditional parameters are LARGE. Conditional parameters are not recommended for interpretation.
+# Also note, that the differences between marginal and conditional parameters are LARGE. Conditional parameters are not recommended for interpretation.
 
 
 # More tests are made in the future.
