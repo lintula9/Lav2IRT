@@ -1,9 +1,5 @@
-# Lavaan to IRT 16.11.2023.
-# Recently added dimname and plotting options.
-# Recently added marginalizing procedure.
-# 16.12.2023 marginalization for correlated specific factors has been added, random sampling procedure for informatio curves has been added.
-# Standardized solutions are not supported - and are unnecesary.
-
+# Lavaan to IRT 20.3.2024.
+# Recently added entropy function.
 source("Libraries.R")
 LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent factor level, given the model and observing some value of some item.
                                     varname, 
@@ -16,7 +12,7 @@ LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent fact
   
   if( std ) {output = inspect( object = lavaanfit, what = "std" )
   } else { output = inspect( object = lavaanfit, what = "est" ) }
-
+  
   if ( !(varname %in% rownames( output$lambda )) ) stop( paste( varname, "not found in lavaan object." ) )
   if ( lavaanfit@Options$mimic != "Mplus") stop( "Please use mimic = 'Mplus' argument in lavaan." )
   if ( lavaanfit@Options$parameterization != "theta") stop( "Please use parameterization = 'theta' argument in lavaan." )
@@ -37,10 +33,10 @@ LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent fact
   factorX = seq(dimmin, dimmax, .01)
   
   if ( marginalize & !std ) {
-
+    
     specific_corr = factorcorr[ -grep(dimname, colnames(factorcorr)) , -grep(dimname, rownames(factorcorr)) ]
     itemloadings_specific = output$lambda[ which( rownames( output$lambda ) == varname ),
-                                   which( colnames( output$lambda ) != dimname ) ]
+                                           which( colnames( output$lambda ) != dimname ) ]
     MarginalizingConstant = sqrt( 1 + as.numeric( t(itemloadings_specific) %*% specific_corr %*% itemloadings_specific ) )
     
     # Item loading is changed to marginalized item loading, and itemthresholds are changed similarly.
@@ -49,7 +45,7 @@ LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent fact
     
   } else if( marginalize & std  ) {
     warning(" ------------------- Marginalization is not currently supported for a standardized solution. ------------")
-
+    
     
     itemloadings_specific = output$lambda[ which( rownames( output$lambda ) == varname ),
                                            which( colnames( output$lambda ) != dimname ) ]
@@ -81,24 +77,97 @@ LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent fact
   return( ProbTheta )
 }
 
-ItemInformation <- function( PorbabilityMatrix ) {
-  if(class(PorbabilityMatrix) != "Lav2IRT") stop( paste( "Provided object is not of class Lav2IRT." ))
-  if(!(attr(PorbabilityMatrix, "IsProbMat"))) stop( paste( "Provided object is not a Lav2IRT matrix of probabilities." ))
+L2IRTPointP <- function( lavaanfit, # Probability of some latent factor level, given the model and observing some value of some item.
+                         varname, 
+                         dimname,
+                         points = 0,
+                         marginalize = F,
+                         silent = F,
+                         std = F) {
   
-  nLevels <- ncol( PorbabilityMatrix )
-  lambda <- attr( PorbabilityMatrix , "Loading" )
+  if( std ) { output = inspect( object = lavaanfit, what = "std" )
+  } else { output = inspect( object = lavaanfit, what = "est" ) }
+  
+  if ( !(varname %in% rownames( output$lambda )) ) stop( paste( varname, "not found in lavaan object." ) )
+  if ( lavaanfit@Options$mimic != "Mplus") stop( "Please use mimic = 'Mplus' argument in lavaan." )
+  if ( lavaanfit@Options$parameterization != "theta") stop( "Please use parameterization = 'theta' argument in lavaan." )
+  if ( lavaanfit@Options$std.lv != T ) stop( "Please use std.lv = TRUE argument in lavaan." )
+  
+  itemloading = output$lambda[ which( rownames( output$lambda ) == varname ), dimname ]
+  itemthresholds = output$tau[ grep( pattern = paste("^",varname,"\\b",sep=""), x = rownames( output$tau ) ) ]
+  itemtheta = output$theta[ varname, varname ]
+  factorcorr = output$psi
+  
+  itemloc = which( lavaanfit@Data@ov.names[[1]] == varname )
+  itemlevels = as.character( 1 : ( length( itemthresholds ) + 1 ))
+  nCat <- length( itemlevels ) 
+  
+  factormean = output$alpha[ which( rownames( output$alpha ) == dimname ) ]
+  factorvar = output$psi[ dimname, dimname ]
+  
+  if ( marginalize & !std ) {
+    
+    specific_corr = factorcorr[ -grep(dimname, colnames(factorcorr)) , -grep(dimname, rownames(factorcorr)) ]
+    itemloadings_specific = output$lambda[ which( rownames( output$lambda ) == varname ),
+                                           which( colnames( output$lambda ) != dimname ) ]
+    MarginalizingConstant = sqrt( 1 + as.numeric( t(itemloadings_specific) %*% specific_corr %*% itemloadings_specific ) )
+    
+    # Item loading is changed to marginalized item loading, and item thresholds are changed similarly.
+    itemloading = itemloading / MarginalizingConstant
+    itemthresholds = itemthresholds / MarginalizingConstant
+    
+  } else if( marginalize & std  ) {
+    warning(" ------------------- Marginalization is not currently supported for a standardized solution. ------------")
+    
+    
+    itemloadings_specific = output$lambda[ which( rownames( output$lambda ) == varname ),
+                                           which( colnames( output$lambda ) != dimname ) ]
+    MarginalizingConstant = sqrt( itemtheta + as.numeric( t(itemloadings_specific) %*% specific_corr %*% itemloadings_specific ) )
+    
+    # Item loading is changed to marginalized item loading. itemthresholds are changed similarly.
+    itemloading = itemloading / MarginalizingConstant
+    itemthresholds = itemthresholds / MarginalizingConstant
+  }
+  
+  # Item Y indicates P( latentVariable = at some level | X is some category ):
+  ProbTheta <- matrix(ncol = nCat, nrow = length(points))
+  ProbTheta[ , 1                ] <- pnorm( q =  ( itemthresholds[ 1 ] - itemloading * points ) / sqrt( itemtheta ) ) # First category probability.
+  ProbTheta[ , 2 : ( nCat - 1 ) ] <- sapply( 2 : ( nCat - 1 ), FUN = function( j ) { # Middle category probabilities.
+    pnorm( q =( itemthresholds[ j ] - itemloading * points ) / sqrt( itemtheta ) )  - pnorm( q = ( itemthresholds[ j - 1 ] - itemloading * points ) / sqrt( itemtheta ) ) } ) 
+  ProbTheta[ , nCat             ] <- ( 1 - pnorm( q =  ( itemthresholds[ nCat - 1 ] - itemloading * points ) / sqrt( itemtheta ) ) ) # Last category probability.
+  
+  attr(ProbTheta, "Variable name") <- varname
+  attr(ProbTheta, "Thresholds") <- itemthresholds
+  attr(ProbTheta, "Loading") <- itemloading
+  attr(ProbTheta, "lvarname") <- dimname
+  attr(ProbTheta, "Dimension interval") <- range(points)
+  attr(ProbTheta, "ThetaParameter") <- output$theta[ varname, varname ]
+  attr(ProbTheta, "Plotting method") <- "ICC"
+  attr(ProbTheta, "IsProbMat") <- T
+  
+  class(ProbTheta) <- "Lav2IRT"
+  
+  return( ProbTheta )
+}
+
+ItemInformation <- function( ProbabilityMatrix ) {
+  if(class(ProbabilityMatrix) != "Lav2IRT") stop( paste( "Provided object is not of class Lav2IRT." ))
+  if(!(attr(ProbabilityMatrix, "IsProbMat"))) stop( paste( "Provided object is not a Lav2IRT matrix of probabilities." ))
+  
+  nLevels <- ncol( ProbabilityMatrix )
+  lambda <- attr( ProbabilityMatrix , "Loading" )
   
   # Note: theta (i.e., unique factor variance, 'error', is set to 1 with theta parameterization by default.)
   # Hence, including it does not make a difference. Only included currently for future improvements.
   
-  theta <- attr( PorbabilityMatrix , "ThetaParameter" ) 
+  theta <- attr( ProbabilityMatrix , "ThetaParameter" ) 
   
-  Item_Q <- matrix(ncol = nLevels + 1 , nrow = nrow(PorbabilityMatrix)) # Number of columns is nlevels + 1 because we need '0' level/category.
+  Item_Q <- matrix(ncol = nLevels + 1 , nrow = nrow(ProbabilityMatrix)) # Number of columns is nlevels + 1 because we need '0' level/category.
   Item_Q[ , 1 ] <- 0 # When level is 0.
-  Item_Q[ , 2 ] <- PorbabilityMatrix[ , 1] # When level is 1.
+  Item_Q[ , 2 ] <- ProbabilityMatrix[ , 1] # When level is 1.
   Item_Q[ , 3 : ( nLevels ) ] <-
     sapply( 2:(nLevels - 1), FUN = function( j ) { # For 1 to nlevels - 1. Last column is spared for the last level.
-      apply( PorbabilityMatrix[ , 1 : j], MARGIN = 1, sum )
+      apply( ProbabilityMatrix[ , 1 : j, drop = F ], MARGIN = 1, sum )
     } )
   Item_Q[ , nLevels + 1 ] <- 1 # When level is last category.
   
@@ -106,16 +175,16 @@ ItemInformation <- function( PorbabilityMatrix ) {
     
     (3.29 * (lambda^2) / theta) * 
       rowSums(
-        sapply( 2:( ncol( Item_Q )), FUN = function( r ) {
-          ( ( Item_Q[ , r ] * ( 1 - Item_Q[ , r ] ) ) - ( Item_Q[ , r -1 ] * (( 1 - Item_Q[ , r - 1 ] )) ) )^2 / 
-            (  PorbabilityMatrix[ , r - 1 ] )
-        }, simplify = "matrix")) )
+        matrix( sapply( 2:( ncol( Item_Q )), FUN = function( r ) {
+          ( ( Item_Q[ , r, drop = F  ] * ( 1 - Item_Q[ , r, drop = F  ] ) ) - ( Item_Q[ , r -1, drop = F  ] * (( 1 - Item_Q[ , r - 1, drop = F  ] )) ) )^2 / 
+            (  ProbabilityMatrix[ , r - 1, drop = F  ] ), ncol = ncol(Item_Q) - 1 )
+          }, simplify = "matrix")) )
   
   attr(IIC, "Plotting method") <- "IIC"
-  attr(IIC, "Dimension interval") <- attr( PorbabilityMatrix, "Dimension interval" )
-  attr(IIC, "lvarname") <- attr( PorbabilityMatrix, "lvarname" )
-  attr(IIC, "xsequence") <- seq(attr(PorbabilityMatrix, "Dimension interval")[1], 
-                                attr(PorbabilityMatrix, "Dimension interval")[2], .1)
+  attr(IIC, "Dimension interval") <- attr( ProbabilityMatrix, "Dimension interval" )
+  attr(IIC, "lvarname") <- attr( ProbabilityMatrix, "lvarname" )
+  attr(IIC, "xsequence") <- seq(attr(ProbabilityMatrix, "Dimension interval")[1], 
+                                attr(ProbabilityMatrix, "Dimension interval")[2], .1)
   class(IIC) <- "Lav2IRT"
   
   return( IIC )
@@ -194,13 +263,13 @@ RandomInformation <- function( lavaanfit,
   pbsapply(1:boot.n, FUN = function( i ) {
     if(!is.null(itemnames)) sampleItems = sample(itemnames, size = n.items, replace = T) else sampleItems = sample(lavaanfit@Data@ov.names[[1]], size = n.items, replace = T)
     randomTestInfo[ , i ] <<- rowSums( sapply(sampleItems, 
-                                      FUN = function( x ) ItemInformation( LavaanIRTProbabilities( lavaanfit, dimname = dimname, varname = x, dimmin = dimmin, dimmax = dimmax, ... ) ) ) )
+                                              FUN = function( x ) ItemInformation( LavaanIRTProbabilities( lavaanfit, dimname = dimname, varname = x, dimmin = dimmin, dimmax = dimmax, ... ) ) ) )
   })
-
+  
   class(randomTestInfo) <- "Lav2IRT"
   colnames(randomTestInfo) <- paste( "Sample.", 1:boot.n, sep = "" )
   rownames(randomTestInfo) <- paste( "dimvalue: ", 1:length( seq( dimmin, dimmax, .01 ) ), sep = "" )
-
+  
   return( list(RandomTestInfo = randomTestInfo, 
                median = apply(randomTestInfo, MARGIN = 1, FUN = median, na.rm = T), 
                mean = apply(randomTestInfo, MARGIN = 1, FUN = mean, na.rm = T), 
@@ -208,32 +277,13 @@ RandomInformation <- function( lavaanfit,
   
 }
 
-# Separate marginalization function:
-Lav2IRTMarginalize <- function( lavaanfit,
-                                varname,
-                                dimname) {
-  
-  output = inspect( object = lavaanfit, what = "est" ) 
+# Entropy -----
+# The below function can be used to calculate entropy for, for example, information.
 
-  if ( !(varname %in% rownames( output$lambda )) ) stop( paste( varname, "not found in lavaan object." ) )
-  if ( lavaanfit@Options$mimic != "Mplus") stop( "Please use mimic = 'Mplus' argument in lavaan." )
-  if ( lavaanfit@Options$parameterization != "theta") stop( "Please use parameterization = 'theta' argument in lavaan." )
-  if ( lavaanfit@Options$std.lv != T ) stop( "Please use std.lv = TRUE argument in lavaan." )
-  
-  itemloading = output$lambda[ which( rownames( output$lambda ) == varname ), dimname ]
-  itemthresholds = output$tau[ grep( pattern = paste("^",varname,"\\b",sep=""), x = rownames( output$tau ) ) ]
+Entropy <- function( FUN, lower = -Inf, upper = Inf ) {
+  NormConstant <- integrate( FUN , lower = lower, upper = upper )$value
+  plogp = function(x) ( FUN(x) / NormConstant ) * log(FUN(x) / NormConstant)
+  Entropy = -1*integrate( plogp, lower = lower, upper = upper )$value
+  return( Entropy )
+}
 
-  specific_corr = output$psi[ -grep(dimname, colnames(output$psi)) , -grep(dimname, rownames(output$psi)) ]
-  itemloadings_specific = output$lambda[ which( rownames( output$lambda ) == varname ),
-                                         which( colnames( output$lambda ) != dimname ) ]
-  MarginalizingConstant = sqrt( 1 + as.numeric( t(itemloadings_specific) %*% specific_corr %*% itemloadings_specific ) )
-  
-  # Item loading is changed to marginalized item loading, and itemthresholds are changed similarly.
-  itemloading = itemloading / MarginalizingConstant
-  itemthresholds = itemthresholds / MarginalizingConstant
-  
-  return( list( Marginal_loading = itemloading, 
-                Marginal_thresholds = itemthresholds, 
-                Marginalizing_factor = MarginalizingConstant))
-  
-  }
