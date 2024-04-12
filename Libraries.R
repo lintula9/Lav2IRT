@@ -1,5 +1,6 @@
 # Libraries
-package_names <- c("lavaan", "mirt", "pbapply", "RColorBrewer", "ggplot2", "StanHeaders", "Rcpp", "BH", "RcppEigen", "RcppParallel")
+package_names <- c("lavaan", "mirt", "pbapply", "RColorBrewer", "ggplot2", "StanHeaders", "Rcpp", "BH", "RcppEigen", "RcppParallel",
+                   "devtools")
 
 if( !requireNamespace("StanHeaders", quietly = F) ) install.packages("StanHeaders", repos = c("https://mc-stan.org/r-packages/", getOption("repos")))
 
@@ -19,3 +20,10 @@ options(ggplot2.discrete.colour= cols)
 par(family = "serif")
 
 
+if(!requireNamespace("autodiffr", quietly = F)) devtools::install_github("Non-Contradiction/autodiffr")
+if(!requireNamespace("JuliaCall", quietly = F)) devtools::install_github("Non-Contradiction/JuliaCall")
+
+library(JuliaCall); library(autodiffr)
+
+## THIS NEEDS UPDATING TO MORE GENERAL OR SOMETHING THAT CHECKS IF JULIA IS IN PATH?
+ad_setup(JULIA_HOME = "/Program Files/Julia-1.10.2/bin/")

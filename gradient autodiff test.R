@@ -1,11 +1,31 @@
-# Gradient computations, test
+# Gradient computations test.
 
-# R into C++
-if(!exists("package_names")) source("Libraries.R")
+specific_corr = factorcorr[ -grep(dimname, colnames(factorcorr)) , -grep(dimname, rownames(factorcorr)) ]
+itemloadings_specific = output$lambda[ which( rownames( output$lambda ) == varname ),
+                                       which( colnames( output$lambda ) != dimname ) ]
+MarginalizingConstant = sqrt( 1 + as.numeric( t(itemloadings_specific) %*% specific_corr %*% itemloadings_specific ) )
 
-## update PKG_CXXFLAGS and PKG_LIBS
-Sys.setenv(PKG_CXXFLAGS = StanHeaders:::CxxFlags(as_character = TRUE))
-SH <- system.file(ifelse(.Platform$OS.type == "windows", "libs", "lib"), .Platform$r_arch, package = "StanHeaders", mustWork = TRUE)
-Sys.setenv(PKG_LIBS = paste0(StanHeaders:::LdFlags(as_character = TRUE), " -L", shQuote(SH), " -lStanHeaders"))
+# Item loading is changed to marginalized item loading, and item thresholds are changed similarly.
+itemloading = itemloading / MarginalizingConstant
+itemthresholds = itemthresholds / MarginalizingConstant
 
-Rcpp::sourceCpp("LamdaMargGradient.cpp" )
+
+
+# Toy
+C = matrix(c(1,.5,.5,
+             .5,1.,.5,
+             .5,.5,1), ncol = 3)
+lambda = 2
+lambda_s = c(1.5,1,0.5)
+p = length(lambda_s)
+theta = c(lambda, lambda_s, as.vector(C))
+
+MargLamda <- function(theta) {
+  
+  return( theta[1] / sqrt(1 + (  (theta[2:(1+p)]) %m% t(theta[2:(1+p)])  %m% theta[(1+1+p):(1+p+p^2)] ) )
+   )
+  }
+MargLamdaGrad = makeGradFunc(MargLamda)
+
+
+MargLamdaGrad(x = c(lambda,lambda_s,as.vector(C)))
