@@ -15,17 +15,37 @@ itemthresholds = itemthresholds / MarginalizingConstant
 C = matrix(c(1,.5,.5,
              .5,1.,.5,
              .5,.5,1), ncol = 3)
+C_lt = C[lower.tri(C, diag = T)]
 lambda = 2
 lambda_s = c(1.5,1,0.5)
 p = length(lambda_s)
-theta = c(lambda, lambda_s, as.vector(C))
+theta = c( lambda, lambda_s, C_lt )
 
 MargLamda <- function(theta) {
-  
-  return( theta[1] / sqrt(1 + (  (theta[2:(1+p)]) %m% t(theta[2:(1+p)])  %m% theta[(1+1+p):(1+p+p^2)] ) )
-   )
+  S = matrix(0, ncol = p, nrow = p)
+  S[ lower.tri(S,diag = T) ] = theta[(1+1+p):(p*(p+1)/2 + 1 + p)]
+  S[ upper.tri(S) ] = S[ lower.tri(S) ]
+  return( theta[1] / sqrt(1 + (  t(as.vector((theta[2:(1+p)]) %m% t(theta[2:(1+p)])))  %m% as.vector(S) ) ) )
+   
   }
 MargLamdaGrad = makeGradFunc(MargLamda)
 
 
-MargLamdaGrad(x = c(lambda,lambda_s,as.vector(C)))
+MargLamdaGrad( x = c( lambda, lambda_s, C_lt ) )
+
+
+
+
+
+numDeriv::grad(function (theta)  { S = matrix(0, ncol = p, nrow = p)
+               S[ lower.tri(S,diag = T) ] = theta[(1+1+p):(p*(p+1)/2 + 1 + p)]
+               S[ upper.tri(S) ] = S[ lower.tri(S) ]
+               return( theta[1] / sqrt(1 + (  t(as.vector((theta[2:(1+p)]) %m% t(theta[2:(1+p)])))  %m% as.vector(S) ) ) )}, 
+               x = theta)
+               
+# Get the vcov of parameter estimates
+varnames = paste("X",1:6, sep = "")
+LambdaNames = paste("p=~", varnames, sep = "")
+
+
+vcov(LavaanResult)

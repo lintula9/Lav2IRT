@@ -4,7 +4,7 @@
 
 # 1st section: evaluation in scenario with 1 nuisance variable, comparison to mirt package. -----
 
-library(lavaan);library(mirt);par(family = "serif")
+library(lavaan);library(mirt);par(family = "serif"); library(tibble)
 
 # No nuisance 'ideal model'.
 IdealModel <- "
