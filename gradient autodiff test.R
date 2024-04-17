@@ -44,8 +44,13 @@ numDeriv::grad(function (theta)  { S = matrix(0, ncol = p, nrow = p)
                x = theta)
                
 # Get the vcov of parameter estimates
-varnames = paste("X",1:6, sep = "")
-LambdaNames = paste("p=~", varnames, sep = "")
+varnames = lavaan::lavNames(LavaanResult_ideal, type = "ov")
+LambdaNames = paste("p","=~", varnames, sep = "")
+sfactornames = paste(lavaan::lavNames(LavaanResult_ideal, type = "lv")); sfactornames[ ]
+
+ScovNames = paste(sfactornames, "~~", sfactornames, sep = "")
+
+vcov(LavaanResult_ideal)[ LambdaNames , LambdaNames ]
 
 
-vcov(LavaanResult)
+str(LavaanResult_ideal)

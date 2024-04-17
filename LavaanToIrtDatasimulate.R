@@ -284,3 +284,48 @@ comparisonModel <- mirt(X_ideal, model = 1, itemtype = "graded" )
 plot(comparisonModel, main = "", type = "info")
 itemplot(comparisonModel, item = "X3", main = "", type = "info")
 }
+
+
+# Run for delta method, with covarying factors
+
+library(MASS)
+data("mtcars")
+dmtest = lavaan::efa(mtcars[, ], nfactors = 3, rotation = "bigeomin", rotation.args = list(orthogonal = F, r.starts = 40),
+            ordered = c("cyl", "vs", "am", "gear", "carb"), 
+            mimic = "mplus", estimator = "WLSMV", parameterization = "theta")
+
+DeltaModel <- "
+    
+    # Big general factor
+    p =~ .6 * X1 + .6 * X2 + .6 * X3 + .6 * X4 + .6 * X5 + .6 * X6
+
+    # Nuisance factor
+    nuisance =~ .8 * X1 + .3 * X2 + .1 * X3
+    nuisance2 =~ .1 * X4 + .3 * X5 + .8 * X6
+
+    X1 | -1*t1 + 0*t2 + 1*t3
+    X2 | -1.5*t1 + 0*t2 + 1.5*t3
+    X3 | -2*t1 + 0*t2 + 2*t3
+    X4 | -1*t1 + 0*t2 + 1*t3
+    X5 | -1*t1 + 0*t2 + 1*t3
+    X6 | -1*t1 + 0*t2 + 1*t3
+
+    # Ensure var = 1 of factors.
+    p ~~ 0*nuisance
+    nuisance ~~ 1*nuisance
+    p ~~ 1*p
+    
+    # Oblique factors
+    nuisance ~~ 0.4*nuisance 2
+
+"
+
+X <- tibble(simulateData(DeltaModel, model.type = F, 
+                         int.lv.free = F, 
+                         std.lv = T, 
+                         sample.nobs = 10000, 
+                         standardized = T))
+efa(X, nfactors = 3, rotation = "bigeomin", 
+    rotation.args = list(orthogonal = F), ordered = T, mimic = "mplus",
+    estimator = "WLSMV")
+

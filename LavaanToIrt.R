@@ -287,3 +287,22 @@ Entropy <- function( FUN, lower = -Inf, upper = Inf ) {
   return( Entropy )
 }
 
+# Marginalization delta method -----
+
+# Capture lambdas, specific latent covariance, as single non-redundant vector theta
+output = inspect( object = lavaanfit, what = "est" )
+theta = as.vector(output$lambda[ which( rownames( output$lambda ) == varname ), # Provide dimname! GenFac loading as the first of theta.
+                                 which( colnames( output$lambda ) == dimname )])
+theta = as.vector(output$lambda[ which( rownames( output$lambda ) == varname ), # Provide variable name!
+                        which( colnames( output$lambda ) != dimname )]) 
+specific_cov = output$psi[ -grep(dimname, lavaan::lavNames( lavaanfit, "lv" )) , -grep(dimname, lavaan::lavNames( lavaanfit, "lv" )) ]
+specific_cov[upper.tri(specific_cov)] = NA
+theta = append(theta, na.omit(as.vector(specific_cov)) ) 
+
+# Capture variance-covariance of above parameters
+
+# Function of all lambdas, and specific latent covariances
+L2IRTConfidence = function(theta) {}
+  
+# Numerically differentiate the function
+
