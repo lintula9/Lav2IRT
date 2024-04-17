@@ -48,7 +48,6 @@ varnames = lavaan::lavNames(LavaanResult_ideal, type = "ov")
 LambdaNames = paste("p","=~", varnames, sep = "")
 sfactornames = paste(lavaan::lavNames(LavaanResult_ideal, type = "lv")); sfactornames[ ]
 
-outer(c("A~~", "B~~", "C~~"),c("A", "B", "C"), FUN = paste, sep = "") # Retain upper or lower?
 ScovNames = paste(sfactornames, "~~", sfactornames, sep = "")
 
 vcov(LavaanResult_ideal)[ LambdaNames , LambdaNames ]

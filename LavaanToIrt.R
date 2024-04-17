@@ -306,13 +306,10 @@ theta = append( theta, na.omit(as.vector(specific_cov)) )
 LambdaCols = paste( dimname, "=~" , # Loadings on the general factor.
                     rownames( output$lambda ), sep ="" ) # Again we want to ensure the same ordering with rownames lambda.
 
-for ( i in colnames(output$psi[ -grep(dimname, colnames( output$psi ) ) ] ) ) {
-  
-  paste( i , "~~", colnames(output$psi[ -grep(dimname, colnames( output$psi ) ) ] ), sep = "" )
-  
-}
-
-
+SpecificCovCols = outer(paste(colnames( output$psi )[ -grep(dimname, colnames( output$psi ) ) ], "~~", sep = ""), # Ordering again. SFactor name and ~~ operator.
+            colnames( output$psi )[ -grep(dimname, colnames( output$psi ) ) ], # SFactor name.
+      FUN = paste, sep = "") # 
+SpecificCovCols[ upper.tri( SpecificCovCols ) ] = NA # Each covariance is only once in lavaan output.
 
 
 SpecificCovCols = paste( colnames( output$psi )[ -grep(dimname, colnames( output$psi ) ) ], "~~" , sep = "") # Ordering.
