@@ -293,13 +293,29 @@ Entropy <- function( FUN, lower = -Inf, upper = Inf ) {
 output = inspect( object = lavaanfit, what = "est" )
 theta = as.vector(output$lambda[ which( rownames( output$lambda ) == varname ), # Provide dimname! GenFac loading as the first of theta.
                                  which( colnames( output$lambda ) == dimname )])
-theta = as.vector(output$lambda[ which( rownames( output$lambda ) == varname ), # Provide variable name!
-                        which( colnames( output$lambda ) != dimname )]) 
-specific_cov = output$psi[ -grep(dimname, lavaan::lavNames( lavaanfit, "lv" )) , -grep(dimname, lavaan::lavNames( lavaanfit, "lv" )) ]
-specific_cov[upper.tri(specific_cov)] = NA
-theta = append(theta, na.omit(as.vector(specific_cov)) ) 
+theta = append( theta,
+        as.vector(output$lambda[ which( rownames( output$lambda ) == varname ), # Provide variable name!
+                                 which( colnames( output$lambda ) != dimname )]) # Append specific factor correlations
+        )
+specific_cov = output$psi[ -grep(dimname, colnames(output$lambda) ) , # Ensure ordering with colnames of lambda
+                           -grep(dimname, colnames(output$lambda) ) ]
+specific_cov[ upper.tri(specific_cov) ] = NA # Set to NA and omit upper part later.
+theta = append( theta, na.omit(as.vector(specific_cov)) ) 
 
-# Capture variance-covariance of above parameters
+# Capture variance-covariance of above parameters.
+LambdaCols = paste( dimname, "=~" , # Loadings on the general factor.
+                    rownames( output$lambda ), sep ="" ) # Again we want to ensure the same ordering with rownames lambda.
+
+for ( i in colnames(output$psi[ -grep(dimname, colnames( output$psi ) ) ] ) ) {
+  
+  paste( i , "~~", colnames(output$psi[ -grep(dimname, colnames( output$psi ) ) ] ), sep = "" )
+  
+}
+
+
+
+
+SpecificCovCols = paste( colnames( output$psi )[ -grep(dimname, colnames( output$psi ) ) ], "~~" , sep = "") # Ordering.
 
 # Function of all lambdas, and specific latent covariances
 L2IRTConfidence = function(theta) {}
