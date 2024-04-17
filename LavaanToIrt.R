@@ -177,8 +177,8 @@ ItemInformation <- function( ProbabilityMatrix ) {
       rowSums(
         matrix( sapply( 2:( ncol( Item_Q )), FUN = function( r ) {
           ( ( Item_Q[ , r, drop = F  ] * ( 1 - Item_Q[ , r, drop = F  ] ) ) - ( Item_Q[ , r -1, drop = F  ] * (( 1 - Item_Q[ , r - 1, drop = F  ] )) ) )^2 / 
-            (  ProbabilityMatrix[ , r - 1, drop = F  ] ), ncol = ncol(Item_Q) - 1 )
-          }, simplify = "matrix")) )
+            (  ProbabilityMatrix[ , r - 1, drop = F  ] )
+          }, simplify = "matrix"), ncol = ncol(Item_Q) - 1 ) ) )
   
   attr(IIC, "Plotting method") <- "IIC"
   attr(IIC, "Dimension interval") <- attr( ProbabilityMatrix, "Dimension interval" )
@@ -289,33 +289,57 @@ Entropy <- function( FUN, lower = -Inf, upper = Inf ) {
 
 # Marginalization delta method -----
 
-# Capture lambdas, specific latent covariance, as single non-redundant vector theta
-output = inspect( object = lavaanfit, what = "est" )
-theta = as.vector(output$lambda[ which( rownames( output$lambda ) == varname ), # Provide dimname! GenFac loading as the first of theta.
-                                 which( colnames( output$lambda ) == dimname )])
-theta = append( theta,
-        as.vector(output$lambda[ which( rownames( output$lambda ) == varname ), # Provide variable name!
-                                 which( colnames( output$lambda ) != dimname )]) # Append specific factor correlations
-        )
-specific_cov = output$psi[ -grep(dimname, colnames(output$lambda) ) , # Ensure ordering with colnames of lambda
-                           -grep(dimname, colnames(output$lambda) ) ]
-specific_cov[ upper.tri(specific_cov) ] = NA # Set to NA and omit upper part later.
-theta = append( theta, na.omit(as.vector(specific_cov)) ) 
+MargLoadingCI <- function(varname, 
+                          dimname, 
+                          lavaanfit){
 
-# Capture variance-covariance of above parameters.
-LambdaCols = paste( dimname, "=~" , # Loadings on the general factor.
-                    rownames( output$lambda ), sep ="" ) # Again we want to ensure the same ordering with rownames lambda.
-
-SpecificCovCols = outer(paste(colnames( output$psi )[ -grep(dimname, colnames( output$psi ) ) ], "~~", sep = ""), # Ordering again. SFactor name and ~~ operator.
-            colnames( output$psi )[ -grep(dimname, colnames( output$psi ) ) ], # SFactor name.
-      FUN = paste, sep = "") # 
-SpecificCovCols[ upper.tri( SpecificCovCols ) ] = NA # Each covariance is only once in lavaan output.
-
-
-SpecificCovCols = paste( colnames( output$psi )[ -grep(dimname, colnames( output$psi ) ) ], "~~" , sep = "") # Ordering.
-
-# Function of all lambdas, and specific latent covariances
-L2IRTConfidence = function(theta) {}
+  # Capture lambdas, specific latent covariance, as single non-redundant vector theta
+  output = inspect( object = lavaanfit, what = "est" )
   
-# Numerically differentiate the function
+  # Error handling
+  if(!(dimname %in% colnames(output$lambda))) {message("Dimension name not found in the output."); stop()}
+  if(!(varname %in% rownames(output$lambda))) {message("Variable name not found in the output."); stop()}
+  
+  theta = as.vector(output$lambda[ which( rownames( output$lambda ) == varname ), # Provide dimname! GenFac loading as the first of theta.
+                                   which( colnames( output$lambda ) == dimname )])
+  theta = append( theta,
+          as.vector(output$lambda[ which( rownames( output$lambda ) == varname ), # Provide variable name!
+                                   which( colnames( output$lambda ) != dimname )]) # Append specific factor correlations
+          )
+  specific_cov = output$psi[ -grep(dimname, colnames(output$lambda) ) , # Ensure ordering with colnames of lambda
+                             -grep(dimname, colnames(output$lambda) ) ]
+  specific_cov[ upper.tri(specific_cov) ] = NA # Set to NA and omit upper part later.
+  theta = append( theta, na.omit(as.vector(specific_cov)) ) 
+  
+  # Capture variance-covariance of above parameters.
+  # Lambda
+  LambdaCols = paste( dimname, "=~" , # Loadings on the general factor.
+                      rownames( output$lambda ), # Again we want to ensure the same ordering with rownames lambda.
+                      sep ="" ) 
+  
+  # Psi (specific factor correlations)
+  SpecificCovCols = outer(
+    paste(colnames( output$psi )[ -grep(dimname, colnames( output$psi ) ) ], "~~", sep = ""), # Ordering again. SFactor name and ~~ operator.
+    colnames( output$psi )[ -grep(dimname, colnames( output$psi ) ) ], # SFactor name.
+    FUN = paste, sep = "") 
+  SpecificCovCols[ upper.tri( SpecificCovCols ) ] = NA # Each covariance is only once in lavaan output.
+  SpecificCovCols = na.omit( as.vector( SpecificCovCols ) ) # Write as vector, without the redundant elements.
+  
+  # Capture covariances from the vcov.
+  EstimateCov = vcov(lavaanfit)[ c( LambdaCols, SpecificCovCols ), c( LambdaCols, SpecificCovCols ) ]
+  
+  # Function of all lambdas, and specific latent covariances
+  p = nrow(output$lambda) - 1 # Number of specific factors.
+  MargFunction = function( x ) { # Marginalization function for lambda, created from a single vector of arguments.
+    return( x[ 1 ] / sqrt( 1 + as.numeric( t(x[2:(1+p)]) %*% specific_cov %*% x[2:(1+p)] ) ) )
+  }
+  
+  # Numerically differentiate the function
+  gradient = numDeriv::grad( MargFunction, x = theta )
+  
+  # Return the deltamethod estimate.
+  return( t(gradient) %*% EstimateCov %*% gradient )
+  
+  }
+  
 

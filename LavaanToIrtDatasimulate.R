@@ -297,11 +297,12 @@ dmtest = lavaan::efa(mtcars[, ], nfactors = 3, rotation = "bigeomin", rotation.a
 DeltaModel <- "
     
     # Big general factor
-    p =~ .6 * X1 + .6 * X2 + .6 * X3 + .6 * X4 + .6 * X5 + .6 * X6
+    p =~ .6 * X1 + .6 * X2 + .6 * X3 + .6 * X4 + .6 * X5 + .6 * X6 + .6 * X7 + .6 * X8 + .6 * X9 + .6 * X10 + .6 * X11 + .6 * X12
 
     # Nuisance factor
-    nuisance =~ .8 * X1 + .3 * X2 + .1 * X3
-    nuisance2 =~ .1 * X4 + .3 * X5 + .8 * X6
+    nuisance =~ .8 * X1 + .3 * X2 + .3 * X3
+    nuisance2 =~ .3 * X4 + .3 * X5 + .8 * X6
+    nuisance3 =~ .3 * X7 + .3 * X8 + .8 * X9
 
     X1 | -1*t1 + 0*t2 + 1*t3
     X2 | -1.5*t1 + 0*t2 + 1.5*t3
@@ -309,6 +310,12 @@ DeltaModel <- "
     X4 | -1*t1 + 0*t2 + 1*t3
     X5 | -1*t1 + 0*t2 + 1*t3
     X6 | -1*t1 + 0*t2 + 1*t3
+    X7 | -1*t1 + 0*t2 + 1*t3
+    X8 | -1*t1 + 0*t2 + 1*t3
+    X9 | -1*t1 + 0*t2 + 1*t3
+    X10 | -1*t1 + 0*t2 + 1*t3
+    X11 | -1*t1 + 0*t2 + 1*t3
+    X12 | -1*t1 + 0*t2 + 1*t3
 
     # Ensure var = 1 of factors.
     p ~~ 0*nuisance
@@ -316,12 +323,13 @@ DeltaModel <- "
     p ~~ 1*p
     
     # Oblique factors
-    nuisance ~~ 0.4*nuisance 2
+    nuisance ~~ 0.4*nuisance2 + 0.1*nuisance3
+    nuisance2 ~~ 0.2*nuisance3
 
 "
 
-X <- tibble(simulateData(DeltaModel, model.type = F, 
-                         int.lv.free = F, 
+X <- tibble(simulateData(DeltaModel, 
+                         model.type = F, 
                          std.lv = T, 
                          sample.nobs = 10000, 
                          standardized = T))
