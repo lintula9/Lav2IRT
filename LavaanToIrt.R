@@ -145,7 +145,7 @@ L2IRTPointP <- function( lavaanfit, # Probability of some latent factor level, g
   attr(ProbTheta, "Plotting method") <- "ICC"
   attr(ProbTheta, "IsProbMat") <- T
   
-  class(ProbTheta) <- "Lav2IRT"
+  class(ProbTheta) <- c("Lav2IRT")
   
   return( ProbTheta )
 }
@@ -189,6 +189,16 @@ ItemInformation <- function( ProbabilityMatrix ) {
   
   return( IIC )
   
+}
+
+SetInformation <- function( lavaanfit, itemset, points = 0, dimname, marginalize = F, std = F) {
+  
+  info = 0
+  for(i in itemset) {
+    info = info + ItemInformation(L2IRTPointP(lavaanfit = lavaanfit , varname = i, points = points, 
+                                              dimname = dimname, marginalize = marginalize, silent = T, std = std))
+  }
+  return(info)
 }
 
 TestInformation <- function( lavaanfit, dimname ) { # Test information is the sum of all item informations.
