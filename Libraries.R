@@ -12,18 +12,18 @@ for (i in package_names){
   }
   library( i, character.only = TRUE )}
 
-# Graphical settings
-cols <- brewer.pal(n = 8, name = "Dark2")[1:3]
-names(cols) <- c("Total", "Male", "Female")
-theme_set(theme_bw())
-options(ggplot2.discrete.colour= cols)
-par(family = "serif")
+# Graphical settings --
+# cols <- brewer.pal(n = 8, name = "Dark2")[1:3]
+# names(cols) <- c("Total", "Male", "Female")
+# theme_set(theme_bw())
+# options(ggplot2.discrete.colour= cols)
+# par(family = "serif")
 
 
-if(!requireNamespace("autodiffr", quietly = F)) devtools::install_github("Non-Contradiction/autodiffr")
-if(!requireNamespace("JuliaCall", quietly = F)) devtools::install_github("Non-Contradiction/JuliaCall")
+# if(!requireNamespace("autodiffr", quietly = F)) devtools::install_github("Non-Contradiction/autodiffr")
+# if(!requireNamespace("JuliaCall", quietly = F)) devtools::install_github("Non-Contradiction/JuliaCall")
 
-library(JuliaCall); library(autodiffr)
+# library(JuliaCall); library(autodiffr)
 
 ## THIS NEEDS UPDATING TO MORE GENERAL OR SOMETHING THAT CHECKS IF JULIA IS IN PATH?
-ad_setup(JULIA_HOME = "/Program Files/Julia-1.10.2/bin/")
+# ad_setup(JULIA_HOME = "/Program Files/Julia-1.10.2/bin/")
