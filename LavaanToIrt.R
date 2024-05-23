@@ -13,11 +13,13 @@ LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent fact
   if( std ) {output = inspect( object = lavaanfit, what = "std" )
   } else { output = inspect( object = lavaanfit, what = "est" ) }
   
+  # Error messages.
   if ( !(varname %in% rownames( output$lambda )) ) stop( paste( varname, "not found in lavaan object." ) )
   if ( lavaanfit@Options$mimic != "Mplus") stop( "Please use mimic = 'Mplus' argument in lavaan." )
   if ( lavaanfit@Options$parameterization != "theta") stop( "Please use parameterization = 'theta' argument in lavaan." )
   if ( lavaanfit@Options$std.lv != T ) stop( "Please use std.lv = TRUE argument in lavaan." )
   
+  # Pick parameters.
   itemloading = output$lambda[ which( rownames( output$lambda ) == varname ), dimname ]
   itemthresholds = output$tau[ grep( pattern = paste("^",varname,"\\b",sep=""), x = rownames( output$tau ) ) ]
   itemtheta = output$theta[ varname, varname ]
@@ -33,7 +35,6 @@ LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent fact
   factorX = seq(dimmin, dimmax, .01)
   
   if ( marginalize & !std ) {
-    
     specific_corr = factorcorr[ -grep(dimname, colnames(factorcorr)) , -grep(dimname, rownames(factorcorr)) ]
     itemloadings_specific = output$lambda[ which( rownames( output$lambda ) == varname ),
                                            which( colnames( output$lambda ) != dimname ) ]
@@ -43,9 +44,9 @@ LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent fact
     itemloading = itemloading / MarginalizingConstant
     itemthresholds = itemthresholds / MarginalizingConstant
     
-  } else if( marginalize & std  ) {
+  } 
+  if( marginalize & std  ) {
     warning(" ------------------- Marginalization is not currently supported for a standardized solution. ------------")
-    
     
     itemloadings_specific = output$lambda[ which( rownames( output$lambda ) == varname ),
                                            which( colnames( output$lambda ) != dimname ) ]
@@ -55,6 +56,8 @@ LavaanIRTProbabilities <- function( lavaanfit, # Probability of some latent fact
     itemloading = itemloading / MarginalizingConstant
     itemthresholds = itemthresholds / MarginalizingConstant
   }
+  
+  if( !marginalize & !silent) {message("Unmarginalized loadings are used.")}
   
   # Item Y indicates P( latentVariable = at some level | X is some category ):
   ProbTheta <- matrix(ncol = nCat, nrow = length(factorX))
@@ -83,7 +86,7 @@ L2IRTPointP <- function( lavaanfit, # Probability of some latent factor level, g
                          points = 0,
                          marginalize = F,
                          silent = F,
-                         std = F) {
+                         std = F ) {
   
   if( std ) { output = inspect( object = lavaanfit, what = "std" )
   } else { output = inspect( object = lavaanfit, what = "est" ) }
