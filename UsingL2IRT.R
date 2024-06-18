@@ -55,7 +55,9 @@ Probs = LavaanIRTProbabilities(lavaanfit = lavaanresult,
 ItemInfos = ItemInformation(Probs)
 
 plot(ItemInfos, type = "l") 
-ggplot() + 
+# Requires ggplot2 package.
+
+ggplot2::ggplot() + 
   geom_line(aes(y = as.numeric(ItemInfos), # manual switch to numeric class is currently required.
                 x = seq(-9, 9, length.out = length(ItemInfos))))
 
