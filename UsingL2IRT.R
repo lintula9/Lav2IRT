@@ -1,12 +1,13 @@
 # Lavaan to Irt example.
 
-source("Libraries.R"); source("LavaanToIRT.R")
+# Fetch necessary functions from github.
+source("https://raw.githubusercontent.com/lintula9/Lav2IRT/main/L2IRT_stable.R")
 
 # Example 1, bifactor model simulated data.
 
 TrueModel <- "
     
-    # Big general factor
+    # General factor
     p =~ .6 * X1 + .6 * X2 + .6 * X3 + .6 * X4 + .6 * X5 + .6 * X6
 
     # Nuisance factor
