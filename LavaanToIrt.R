@@ -201,6 +201,8 @@ SetInformation <- function( lavaanfit, itemset, points = 0, dimname, marginalize
     info = info + ItemInformation(L2IRTPointP(lavaanfit = lavaanfit , varname = i, points = points, 
                                               dimname = dimname, marginalize = marginalize, silent = T, std = std))
   }
+  if( any( is.nan(info) ) ) message("Setting NaN values to zero.")
+  info[ is.nan(info) ] <- 0 # Set NaN to zero.
   return(info)
 }
 
